@@ -61,7 +61,7 @@ namespace FSS
             Subscribe();
 
             State = States.Settings;
-            SetTitle(State.ToString());
+            SetMessage(State.ToString());
         }
 
         private void ATimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
@@ -90,17 +90,17 @@ namespace FSS
                 Console.WriteLine("Pickaboo!");
 
                 State = States.Running;
-                SetTitle(State.ToString());
+                SetMessage(State.ToString());
 
                 this.Show();
-                this.WindowState = FormWindowState.Normal;
+                this.WindowState = FormWindowState.Maximized;
                 notifyIcon1.Visible = false;
             }
         }
 
-        protected void SetTitle(string message)
+        protected void SetMessage(string message)
         {
-            this.Text = "FSS - " + message;
+            this.lblMessage.Text = message;
         }
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
@@ -146,7 +146,7 @@ namespace FSS
             if (this.WindowState == FormWindowState.Minimized)
             {
                 State = States.Minimized;
-                SetTitle(State.ToString());
+                SetMessage(State.ToString());
 
                 Hide();
                 notifyIcon1.Visible = true;
@@ -157,10 +157,10 @@ namespace FSS
         private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
         {
             State = States.Settings;
-            SetTitle(State.ToString());
+            SetMessage(State.ToString());
 
             Show();
-            this.WindowState = FormWindowState.Normal;
+            this.WindowState = FormWindowState.Maximized;
             notifyIcon1.Visible = false;
         }
 
@@ -172,6 +172,16 @@ namespace FSS
             {
                 e.Cancel = true;
             }
+        }
+
+        private void btnClose_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void btnMinimize_Click(object sender, EventArgs e)
+        {
+            this.WindowState = FormWindowState.Minimized;
         }
     }
 }

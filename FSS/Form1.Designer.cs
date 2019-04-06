@@ -32,6 +32,10 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.daPanel = new System.Windows.Forms.Panel();
+            this.btnClose = new System.Windows.Forms.Button();
+            this.btnMinimize = new System.Windows.Forms.Button();
+            this.lblMessage = new System.Windows.Forms.Label();
+            this.daPanel.SuspendLayout();
             this.SuspendLayout();
             // 
             // notifyIcon1
@@ -44,10 +48,42 @@
             // 
             // daPanel
             // 
-            this.daPanel.Location = new System.Drawing.Point(12, 40);
+            this.daPanel.Controls.Add(this.lblMessage);
+            this.daPanel.Controls.Add(this.btnMinimize);
+            this.daPanel.Controls.Add(this.btnClose);
+            this.daPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.daPanel.Location = new System.Drawing.Point(0, 0);
             this.daPanel.Name = "daPanel";
-            this.daPanel.Size = new System.Drawing.Size(417, 287);
+            this.daPanel.Size = new System.Drawing.Size(800, 450);
             this.daPanel.TabIndex = 0;
+            // 
+            // btnClose
+            // 
+            this.btnClose.Location = new System.Drawing.Point(3, 3);
+            this.btnClose.Name = "btnClose";
+            this.btnClose.Size = new System.Drawing.Size(56, 23);
+            this.btnClose.TabIndex = 0;
+            this.btnClose.Text = "Close";
+            this.btnClose.UseVisualStyleBackColor = true;
+            this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
+            // 
+            // btnMinimize
+            // 
+            this.btnMinimize.Location = new System.Drawing.Point(65, 3);
+            this.btnMinimize.Name = "btnMinimize";
+            this.btnMinimize.Size = new System.Drawing.Size(56, 23);
+            this.btnMinimize.TabIndex = 1;
+            this.btnMinimize.Text = "Minimize";
+            this.btnMinimize.UseVisualStyleBackColor = true;
+            this.btnMinimize.Click += new System.EventHandler(this.btnMinimize_Click);
+            // 
+            // lblMessage
+            // 
+            this.lblMessage.AutoSize = true;
+            this.lblMessage.Location = new System.Drawing.Point(127, 8);
+            this.lblMessage.Name = "lblMessage";
+            this.lblMessage.Size = new System.Drawing.Size(0, 13);
+            this.lblMessage.TabIndex = 2;
             // 
             // Form1
             // 
@@ -55,11 +91,16 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
             this.Controls.Add(this.daPanel);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Name = "Form1";
             this.Text = "Form1";
+            this.TopMost = true;
+            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Form1_FormClosed);
             this.Resize += new System.EventHandler(this.Form1_Resize);
+            this.daPanel.ResumeLayout(false);
+            this.daPanel.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -68,6 +109,9 @@
 
         private System.Windows.Forms.NotifyIcon notifyIcon1;
         private System.Windows.Forms.Panel daPanel;
+        private System.Windows.Forms.Button btnClose;
+        private System.Windows.Forms.Button btnMinimize;
+        private System.Windows.Forms.Label lblMessage;
     }
 }
 
