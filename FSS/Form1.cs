@@ -10,6 +10,8 @@ using System.Windows.Forms;
 
 using Gma.System.MouseKeyHook;
 using CefSharp.WinForms;
+using CefSharp;
+using System.IO;
 
 namespace FSS
 {
@@ -18,6 +20,13 @@ namespace FSS
     // https://github.com/gmamaladze/globalmousekeyhook
     // https://docs.microsoft.com/en-us/dotnet/framework/winforms/controls/how-to-make-thread-safe-calls-to-windows-forms-controls
     // https://github.com/cefsharp/CefSharp
+    // 
+    // Various sources for getting the loading of local files to work:
+    //  OLD VERSION: https://thechriskent.com/2014/04/21/use-local-files-in-cefsharp/
+    //  https://stackoverflow.com/questions/28697613/working-with-locally-built-web-page-in-cefsharp
+    //  https://stackoverflow.com/questions/28697613/working-with-locally-built-web-page-in-cefsharp/47805353#47805353
+    //  https://github.com/cefsharp/CefSharp/blob/ce38ed81f07213d4f9ae13c154801f82779e3818/CefSharp/CefCustomScheme.cs
+    //  https://bbonczek.github.io/jekyll/update/2018/04/24/serve-content-in-cef-without-http-server.html
 
     public enum States
     {
@@ -47,10 +56,19 @@ namespace FSS
 
             CefSharp.Cef.EnableHighDPISupport();
 
+            MySchemeHandler mySchemeHandler = new MySchemeHandler();
+
             var settings = new CefSettings();
+            settings.RegisterScheme(new CefCustomScheme
+            {
+                SchemeName = "app",     // Make sure any call to "app://local/blargh.html" trigger MySchemeHandler!
+                SchemeHandlerFactory = mySchemeHandler,
+                IsSecure = true     //treated with the same security rules as those applied to "https" URLs
+            });
             CefSharp.Cef.Initialize(settings);
 
-            browser = new ChromiumWebBrowser("www.google.com");
+            // browser = new ChromiumWebBrowser("www.google.com");
+            browser = new ChromiumWebBrowser("app://local/index.html");
             daPanel.Controls.Add(browser);
 
             aTimer = new System.Timers.Timer();
@@ -93,7 +111,7 @@ namespace FSS
                 SetMessage(State.ToString());
 
                 this.Show();
-                this.WindowState = FormWindowState.Maximized;
+                this.WindowState = FormWindowState.Normal;
                 notifyIcon1.Visible = false;
             }
         }
@@ -184,4 +202,128 @@ namespace FSS
             this.WindowState = FormWindowState.Minimized;
         }
     }
+
+    /**
+     * Extracts "index.html" and try to load the file from the local folder when the uri looks like "app://local/index.html".
+     * 
+     */
+    public class MySchemeHandler : ISchemeHandlerFactory
+    {
+        private string scheme, host, folder, default_filename;
+
+        public MySchemeHandler()
+        {
+            scheme = "";
+            host = "";
+            folder = "";
+            default_filename = "";
+        }
+
+        private string get_content(Uri uri, out string extension)
+        {
+            var path = uri.LocalPath.Substring(1);
+            path = string.IsNullOrWhiteSpace(path) ? this.default_filename : path;
+            extension = Path.GetExtension(path);
+            return File.ReadAllText(Path.Combine(this.folder, path));
+        }
+
+        public IResourceHandler Create(IBrowser browser, IFrame frame, string schemeName, IRequest request)
+        {
+            var uri = new Uri(request.Url);
+            return ResourceHandler.FromString(get_content(uri, out var extension), extension);
+        }
+    }
+
+    // Not used.
+    public class MyResourceHandlerFactory : IResourceHandlerFactory
+    {
+        public bool HasHandlers
+        {
+            get
+            {
+                return true;
+            }
+        }
+
+        public IResourceHandler GetResourceHandler(IWebBrowser browserControl, IBrowser browser, IFrame frame, IRequest request)
+        {
+            return new MyResourceHandler();
+        }
+    }
+
+    // Not used.
+    public class MyResourceHandler : IResourceHandler
+    {
+        public void Cancel()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool CanGetCookie(Cookie cookie)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool CanSetCookie(Cookie cookie)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void GetResponseHeaders(IResponse response, out long responseLength, out string redirectUrl)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool ProcessRequest(IRequest request, ICallback callback)
+        {
+            return true;
+        }
+
+        public bool ReadResponse(Stream dataOut, out int bytesRead, ICallback callback)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /*public class LocalSchemeHandler : ISchemeHandler
+    {
+        public bool ProcessRequestAsync(IRequest request, ISchemeHandlerResponse response, OnRequestCompletedHandler requestCompletedCallback)
+        {
+            Uri u = new Uri(request.Url);
+            String file = u.Authority + u.AbsolutePath;
+
+            if (File.Exists(file))
+            {
+                Byte[] bytes = File.ReadAllBytes(file);
+                response.ResponseStream = new MemoryStream(bytes);
+                switch (Path.GetExtension(file))
+                {
+                    case ".html":
+                        response.MimeType = "text/html";
+                        break;
+                    case ".js":
+                        response.MimeType = "text/javascript";
+                        break;
+                    case ".png":
+                        response.MimeType = "image/png";
+                        break;
+                    case ".appcache":
+                    case ".manifest":
+                        response.MimeType = "text/cache-manifest";
+                        break;
+                    default:
+                        response.MimeType = "application/octet-stream";
+                        break;
+                }
+                requestCompletedCallback();
+                return true;
+            }
+            return false;
+        }
+    }*/
 }
