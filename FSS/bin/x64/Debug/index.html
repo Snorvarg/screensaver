@@ -1,18 +1,26 @@
 <html>
 <head>
+  <title>Teatricks - The life app</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
   <script src="javascript.js"></script>
 </head>
-<body>
-Hej!
-<script>
-function laban()
+<style>
+body
 {
-  alert("first file!");
-  
-  labolina();
+  -webkit-user-select:none;
+  background-color: #005500;
 }
-
-laban();
-</script>
+#canvas
+{
+	position:absolute;
+	top:0px;
+	left:0px;
+}
+</style>
+<body onLoad="init();">
+	<canvas id="canvas">
+	</canvas>
 </body>
 </html>

@@ -48,25 +48,28 @@
             // 
             // daPanel
             // 
+            this.daPanel.BackColor = System.Drawing.SystemColors.Control;
             this.daPanel.Controls.Add(this.lblMessage);
             this.daPanel.Controls.Add(this.btnMinimize);
             this.daPanel.Controls.Add(this.btnClose);
-            this.daPanel.Location = new System.Drawing.Point(37, 59);
+            this.daPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.daPanel.Location = new System.Drawing.Point(0, 0);
             this.daPanel.Name = "daPanel";
-            this.daPanel.Size = new System.Drawing.Size(465, 214);
+            this.daPanel.Size = new System.Drawing.Size(800, 450);
             this.daPanel.TabIndex = 0;
             // 
             // lblMessage
             // 
             this.lblMessage.AutoSize = true;
-            this.lblMessage.Location = new System.Drawing.Point(127, 8);
+            this.lblMessage.Location = new System.Drawing.Point(743, 8);
             this.lblMessage.Name = "lblMessage";
-            this.lblMessage.Size = new System.Drawing.Size(0, 13);
+            this.lblMessage.Size = new System.Drawing.Size(45, 13);
             this.lblMessage.TabIndex = 2;
+            this.lblMessage.Text = "no state";
             // 
             // btnMinimize
             // 
-            this.btnMinimize.Location = new System.Drawing.Point(343, 8);
+            this.btnMinimize.Location = new System.Drawing.Point(65, 8);
             this.btnMinimize.Name = "btnMinimize";
             this.btnMinimize.Size = new System.Drawing.Size(56, 23);
             this.btnMinimize.TabIndex = 1;
@@ -76,7 +79,7 @@
             // 
             // btnClose
             // 
-            this.btnClose.Location = new System.Drawing.Point(249, 8);
+            this.btnClose.Location = new System.Drawing.Point(3, 8);
             this.btnClose.Name = "btnClose";
             this.btnClose.Size = new System.Drawing.Size(56, 23);
             this.btnClose.TabIndex = 0;

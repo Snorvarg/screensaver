@@ -78,6 +78,14 @@ namespace FSS
 
             Subscribe();
 
+#if DEBUG
+            this.WindowState = FormWindowState.Normal;
+            this.TopMost = false;
+#else
+            this.WindowState = FormWindowState.Maximized;
+            this.TopMost = true;
+#endif
+
             State = States.Settings;
             SetMessage(State.ToString());
         }
@@ -111,7 +119,12 @@ namespace FSS
                 SetMessage(State.ToString());
 
                 this.Show();
+
+#if DEBUG
                 this.WindowState = FormWindowState.Normal;
+#else
+                this.WindowState = FormWindowState.Maximized;
+#endif
                 notifyIcon1.Visible = false;
             }
         }
@@ -178,7 +191,13 @@ namespace FSS
             SetMessage(State.ToString());
 
             Show();
-            this.WindowState = FormWindowState.Maximized;
+
+#if DEBUG
+            this.WindowState = FormWindowState.Normal;
+#else
+                this.WindowState = FormWindowState.Maximized;
+#endif
+
             notifyIcon1.Visible = false;
         }
 
