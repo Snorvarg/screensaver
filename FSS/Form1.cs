@@ -12,6 +12,7 @@ using Gma.System.MouseKeyHook;
 using CefSharp.WinForms;
 using CefSharp;
 using System.IO;
+using Microsoft.Win32;
 
 namespace FSS
 {
@@ -27,6 +28,9 @@ namespace FSS
     //  https://stackoverflow.com/questions/28697613/working-with-locally-built-web-page-in-cefsharp/47805353#47805353
     //  https://github.com/cefsharp/CefSharp/blob/ce38ed81f07213d4f9ae13c154801f82779e3818/CefSharp/CefCustomScheme.cs
     //  https://bbonczek.github.io/jekyll/update/2018/04/24/serve-content-in-cef-without-http-server.html
+    //
+    // Start when windows starts:
+    //  https://stackoverflow.com/questions/674628/how-do-i-set-a-program-to-launch-at-startup
 
     public enum States
     {
@@ -45,14 +49,21 @@ namespace FSS
         private delegate void SafeCallDelegate();
 
         protected States State = States.None;
+        protected string StartupArgs = "";
 
-        protected double startScreenSaverAfterSeconds = 10;
+        protected double startScreenSaverAfterMinutes = 1;
 
         protected ChromiumWebBrowser browser;
 
-        public Form1()
+        public Form1(string arg)
         {
             InitializeComponent();
+
+#if DEBUG
+            this.TopMost = false;
+#else
+            this.TopMost = true;
+#endif
 
             CefSharp.Cef.EnableHighDPISupport();
 
@@ -71,23 +82,172 @@ namespace FSS
             browser = new ChromiumWebBrowser("app://local/index.html");
             daPanel.Controls.Add(browser);
 
+            // With or without any arguments, this will transit the screensaver into one of its states.
+            SetStartupArgs(arg);
+
             aTimer = new System.Timers.Timer();
             aTimer.Elapsed += ATimer_Elapsed;
             aTimer.Interval = 5000;
             aTimer.Enabled = true;
 
-            Subscribe();
+            // When the app are in the background it listens for keyboard and mouse changes. 
+            // If no changes has happened for a time, the aTimer might decide to popup the screensaver window.
+            SubscribeToMouseKeyboardEvents();
+
+            // test
+            SetStartupInRegistry(true);
+        }
+
+        /**
+         * Handle the app args given at startup. (This is almost always "/m" as when windows starts and boot up the screensaver)
+         */
+        protected void SetStartupArgs(string arg)
+        {
+#if DEBUG
+            arg = "/f";
+#endif
+
+            StartupArgs = arg;
+
+            switch (StartupArgs)
+            {
+                case "/m":
+                    {
+                        // Start minimized, as when windows starts.
+                        SetSState(States.Minimized);
+                        break;
+                    }
+                case "/f":
+                    {
+                        // Start in fullscreen mode. Like, only in debug mode.
+                        SetSState(States.Running);
+                        break;
+                    }
+                default:
+                    {
+                        // No argument given, so startup in settings-mode.
+                        SetSState(States.Settings);
+                        break;
+                    }
+            }
+        }
+
+        /**
+         * Transit from current state into the newState, if the transition are allowed.
+         */
+        protected void SetSState(States newState)
+        {
+            switch(State)
+            {
+                case States.None:
+                    // App has just started. It can transit into any state.
+                    if (newState == States.Running)
+                    {
+                        TransitIntoRunning();
+                    }
+                    else if (newState == States.Settings)
+                    {
+                        TransitIntoSettings();
+                    }
+                    else if (newState == States.Minimized)
+                    {
+                        TransitIntoMinimized();
+                    }
+                    break;
+                case States.Minimized:
+                    // App is minimized. It can go fullscreen or open its setting-screen.
+                    if (newState == States.Running)
+                    {
+                        TransitIntoRunning();
+                    }
+                    else if (newState == States.Settings)
+                    {
+                        TransitIntoSettings();
+                    }
+                    break;
+                case States.Settings:
+                    // From settings it can minimize or go fullscreen.
+                    if (newState == States.Running)
+                    {
+                        TransitIntoRunning();
+                    }
+                    else if (newState == States.Minimized)
+                    {
+                        TransitIntoMinimized();
+                    }
+                    break;
+                case States.Running:
+                    // From fullscreen it can minimize or show settings.
+                    if (newState == States.Settings)
+                    {
+                        TransitIntoSettings();
+                    }
+                    else if (newState == States.Minimized)
+                    {
+                        TransitIntoMinimized();
+                    }
+                    break;
+            }
+
+            SetMessage(State.ToString());
+        }
+
+        protected void TransitIntoMinimized()
+        {
+            this.WindowState = FormWindowState.Minimized;
+
+            Hide();
+            notifyIcon1.Visible = true;
+            notifyIcon1.ShowBalloonTip(1000);
+
+            State = States.Minimized;
+        }
+        protected void TransitIntoRunning()
+        {
+            this.Show();
 
 #if DEBUG
             this.WindowState = FormWindowState.Normal;
-            this.TopMost = false;
+#else
+                this.WindowState = FormWindowState.Maximized;
+#endif
+            notifyIcon1.Visible = false;
+
+            State = States.Running;
+        }
+        protected void TransitIntoSettings()
+        {
+            Show();
+
+#if DEBUG
+            this.WindowState = FormWindowState.Normal;
 #else
             this.WindowState = FormWindowState.Maximized;
-            this.TopMost = true;
 #endif
 
+            notifyIcon1.Visible = false;
+
             State = States.Settings;
-            SetMessage(State.ToString());
+        }
+
+        /**
+         * Adds (or removes) the app to the "run at startup of windows" registry key.
+         * 
+         */
+        protected void SetStartupInRegistry(bool doStartup)
+        {
+            RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+
+            string appName = "FancyScreenSaver";
+            if(doStartup)
+            {
+                // It should start minimized when windows starts.
+                rk.SetValue(appName, Application.ExecutablePath + " /m");
+            }
+            else
+            {
+                rk.DeleteValue(appName, false);
+            }
         }
 
         private void ATimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
@@ -95,7 +255,7 @@ namespace FSS
             if (this.WindowState == FormWindowState.Minimized)
             {
                 DateTime someTimeAgo = DateTime.Now;
-                someTimeAgo = someTimeAgo.Subtract(TimeSpan.FromSeconds(startScreenSaverAfterSeconds));
+                someTimeAgo = someTimeAgo.Subtract(TimeSpan.FromSeconds(startScreenSaverAfterMinutes * 60));
                 if(lastChange < someTimeAgo)
                 {
                     ShowScreenSaver();
@@ -115,17 +275,7 @@ namespace FSS
             {
                 Console.WriteLine("Pickaboo!");
 
-                State = States.Running;
-                SetMessage(State.ToString());
-
-                this.Show();
-
-#if DEBUG
-                this.WindowState = FormWindowState.Normal;
-#else
-                this.WindowState = FormWindowState.Maximized;
-#endif
-                notifyIcon1.Visible = false;
+                SetSState(States.Running);
             }
         }
 
@@ -139,7 +289,7 @@ namespace FSS
             Unsubscribe();
         }
 
-        protected void Subscribe()
+        protected void SubscribeToMouseKeyboardEvents()
         {
             // Note: for the application hook, use the Hook.AppEvents() instead
             m_GlobalHook = Hook.GlobalEvents();
@@ -172,33 +322,12 @@ namespace FSS
             lastChange = DateTime.Now;
         }
 
-        private void Form1_Resize(object sender, EventArgs e)
-        {
-            if (this.WindowState == FormWindowState.Minimized)
-            {
-                State = States.Minimized;
-                SetMessage(State.ToString());
-
-                Hide();
-                notifyIcon1.Visible = true;
-                notifyIcon1.ShowBalloonTip(1000);
-            }
-        }
-
+        /**
+         * The notify icon in windows bottom-right notification area got double-clicked. Show the settings window.
+         */
         private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
         {
-            State = States.Settings;
-            SetMessage(State.ToString());
-
-            Show();
-
-#if DEBUG
-            this.WindowState = FormWindowState.Normal;
-#else
-                this.WindowState = FormWindowState.Maximized;
-#endif
-
-            notifyIcon1.Visible = false;
+            SetSState(States.Settings);
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -218,7 +347,7 @@ namespace FSS
 
         private void btnMinimize_Click(object sender, EventArgs e)
         {
-            this.WindowState = FormWindowState.Minimized;
+            SetSState(States.Minimized);
         }
     }
 
@@ -228,22 +357,21 @@ namespace FSS
      */
     public class MySchemeHandler : ISchemeHandlerFactory
     {
-        private string scheme, host, folder, default_filename;
-
         public MySchemeHandler()
         {
-            scheme = "";
-            host = "";
-            folder = "";
-            default_filename = "";
         }
 
         private string get_content(Uri uri, out string extension)
         {
             var path = uri.LocalPath.Substring(1);
-            path = string.IsNullOrWhiteSpace(path) ? this.default_filename : path;
+            path = string.IsNullOrWhiteSpace(path) ? "" : path;
+
+            string appPath = Path.GetDirectoryName(Application.ExecutablePath);
+            string fullPath = Path.Combine(appPath, path);
+
             extension = Path.GetExtension(path);
-            return File.ReadAllText(Path.Combine(this.folder, path));
+
+            return File.ReadAllText(fullPath);
         }
 
         public IResourceHandler Create(IBrowser browser, IFrame frame, string schemeName, IRequest request)
