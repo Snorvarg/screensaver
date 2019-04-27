@@ -40,7 +40,7 @@ namespace FSS
         Running         // Skärmsläckaren har startat.
     }
 
-    public partial class Form1 : Form
+    public partial class ScreenSaver : Form
     {
         protected IKeyboardMouseEvents m_GlobalHook;
         protected DateTime lastChange = DateTime.Now;
@@ -51,18 +51,29 @@ namespace FSS
         protected States State = States.None;
         protected string StartupArgs = "";
 
-        protected double startScreenSaverAfterMinutes = 1;
+        protected string regPath = "HKEY_CURRENT_USER\\Software\\MadskullCreations\\";
+        protected string appName = "FancyScreenSaver";
+
+        public double startScreenSaverAfterMinutes = 1;
+        public bool startWhenWindowsStart = true;
 
         protected ChromiumWebBrowser browser;
 
-        public Form1(string arg)
+        public ScreenSaver(string arg)
         {
             InitializeComponent();
 
+            // When starting for the first time these values don't yet exist, so create them.
+            CreateRegistryEntry();
+
+            FetchSettingsFromRegistry();
+
 #if DEBUG
             this.TopMost = false;
+            this.WindowState = FormWindowState.Normal;
 #else
             this.TopMost = true;
+            this.WindowState = FormWindowState.Maximized;
 #endif
 
             CefSharp.Cef.EnableHighDPISupport();
@@ -82,8 +93,13 @@ namespace FSS
             browser = new ChromiumWebBrowser("app://local/index.html");
             daPanel.Controls.Add(browser);
 
+            // NOTE: This is fixing a bug in the chromium browser, if its parent window are not shown briefly/codewise, some events does not happen
+            // as it appear, resulting in the page not loading as expected.
+            this.Show();
+
+            StartupArgs = arg;
             // With or without any arguments, this will transit the screensaver into one of its states.
-            SetStartupArgs(arg);
+            SetStartupArgs(StartupArgs);
 
             aTimer = new System.Timers.Timer();
             aTimer.Elapsed += ATimer_Elapsed;
@@ -93,9 +109,6 @@ namespace FSS
             // When the app are in the background it listens for keyboard and mouse changes. 
             // If no changes has happened for a time, the aTimer might decide to popup the screensaver window.
             SubscribeToMouseKeyboardEvents();
-
-            // test
-            SetStartupInRegistry(true);
         }
 
         /**
@@ -104,7 +117,7 @@ namespace FSS
         protected void SetStartupArgs(string arg)
         {
 #if DEBUG
-            arg = "/f";
+            //arg = "/m";
 #endif
 
             StartupArgs = arg;
@@ -135,7 +148,7 @@ namespace FSS
         /**
          * Transit from current state into the newState, if the transition are allowed.
          */
-        protected void SetSState(States newState)
+        public void SetSState(States newState)
         {
             switch(State)
             {
@@ -151,7 +164,7 @@ namespace FSS
                     }
                     else if (newState == States.Minimized)
                     {
-                        TransitIntoMinimized();
+                        TransitIntoMinimized(false); // Don't show notification bubble during startup.
                     }
                     break;
                 case States.Minimized:
@@ -192,38 +205,47 @@ namespace FSS
             SetMessage(State.ToString());
         }
 
-        protected void TransitIntoMinimized()
+        protected void TransitIntoMinimized(bool showNotification = true)
         {
+            // Change WindowState, then hide it.
             this.WindowState = FormWindowState.Minimized;
-
             Hide();
-            notifyIcon1.Visible = true;
-            notifyIcon1.ShowBalloonTip(1000);
+
+            if (showNotification)
+            {
+                notifyIcon1.Visible = true;
+                notifyIcon1.ShowBalloonTip(1000);
+            }
 
             State = States.Minimized;
         }
         protected void TransitIntoRunning()
         {
-            this.Show();
+            // Reload page to start/restart the screensaver code.
+            // Fixed: Main reason for doing this is; if we come from settings form, the page has not been loaded properly.
+            //       It seem to be a bug in browser, it need it's parent window to be visible, if only for a brief period.
+            //browser.Load("app://local/index.html");
 
+            // Note: Important to show the window before changing WindowState.
+            this.Show();
 #if DEBUG
             this.WindowState = FormWindowState.Normal;
 #else
-                this.WindowState = FormWindowState.Maximized;
+            this.WindowState = FormWindowState.Maximized;
 #endif
+
             notifyIcon1.Visible = false;
 
             State = States.Running;
         }
         protected void TransitIntoSettings()
         {
-            Show();
+            // Change WindowState, then hide it.
+            this.WindowState = FormWindowState.Minimized;
+            Hide();
 
-#if DEBUG
-            this.WindowState = FormWindowState.Normal;
-#else
-            this.WindowState = FormWindowState.Maximized;
-#endif
+            SettingsForm sform = new SettingsForm(this);
+            sform.Show();
 
             notifyIcon1.Visible = false;
 
@@ -234,25 +256,71 @@ namespace FSS
          * Adds (or removes) the app to the "run at startup of windows" registry key.
          * 
          */
-        protected void SetStartupInRegistry(bool doStartup)
+        public void SetStartupInRegistry(bool doStartup)
         {
+            startWhenWindowsStart = doStartup;
+
             RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
 
-            string appName = "FancyScreenSaver";
             if(doStartup)
             {
                 // It should start minimized when windows starts.
                 rk.SetValue(appName, Application.ExecutablePath + " /m");
+
+                string keyName = regPath + appName;
+                Registry.SetValue(keyName, "startWhenWindowsStart", 1);
             }
             else
             {
                 rk.DeleteValue(appName, false);
+
+                string keyName = regPath + appName;
+                Registry.SetValue(keyName, "startWhenWindowsStart", 0);
             }
+        }
+        public void SetMinutesInRegistry(int minutes)
+        {
+            startScreenSaverAfterMinutes = minutes;
+
+            string keyName = regPath + appName;
+            Registry.SetValue(keyName, "minutesBeforeStart", minutes);
+        }
+
+        /**
+         * Make sure a registry entry exists for the screen saver.
+         * 
+         */
+        protected void CreateRegistryEntry()
+        {
+            string keyName = regPath + appName;
+            string valueName = "Coffe";
+
+            object val = Registry.GetValue(keyName, valueName, null);
+
+            if (val == null)
+            {
+                // The coffe is missing, which is critical. Restore order. (app has probably just got installed, so set default values)
+                Registry.SetValue(keyName, valueName, "always");
+                Registry.SetValue(keyName, "minutesBeforeStart", 10);
+                Registry.SetValue(keyName, "startWhenWindowsStart", 1);
+
+                SetStartupInRegistry(true);
+            }
+        }
+        protected void FetchSettingsFromRegistry()
+        {
+            string keyName = regPath+ appName;
+            startScreenSaverAfterMinutes = (int)Registry.GetValue(keyName, "minutesBeforeStart", 10);
+            int slorf = (int)Registry.GetValue(keyName, "startWhenWindowsStart", 1);
+
+            startWhenWindowsStart = false;
+            if (slorf == 1)
+                startWhenWindowsStart = true;
         }
 
         private void ATimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            if (this.WindowState == FormWindowState.Minimized)
+            if(State == States.Minimized)
             {
                 DateTime someTimeAgo = DateTime.Now;
                 someTimeAgo = someTimeAgo.Subtract(TimeSpan.FromSeconds(startScreenSaverAfterMinutes * 60));
@@ -349,6 +417,11 @@ namespace FSS
         {
             SetSState(States.Minimized);
         }
+
+        private void btnSettings_Click(object sender, EventArgs e)
+        {
+            SetSState(States.Settings);
+        }
     }
 
     /**
@@ -398,7 +471,7 @@ namespace FSS
         }
     }
 
-    // Not used.
+    // ProcessRequest() returns true, and that makes the magic.
     public class MyResourceHandler : IResourceHandler
     {
         public void Cancel()
@@ -436,41 +509,4 @@ namespace FSS
             throw new NotImplementedException();
         }
     }
-
-    /*public class LocalSchemeHandler : ISchemeHandler
-    {
-        public bool ProcessRequestAsync(IRequest request, ISchemeHandlerResponse response, OnRequestCompletedHandler requestCompletedCallback)
-        {
-            Uri u = new Uri(request.Url);
-            String file = u.Authority + u.AbsolutePath;
-
-            if (File.Exists(file))
-            {
-                Byte[] bytes = File.ReadAllBytes(file);
-                response.ResponseStream = new MemoryStream(bytes);
-                switch (Path.GetExtension(file))
-                {
-                    case ".html":
-                        response.MimeType = "text/html";
-                        break;
-                    case ".js":
-                        response.MimeType = "text/javascript";
-                        break;
-                    case ".png":
-                        response.MimeType = "image/png";
-                        break;
-                    case ".appcache":
-                    case ".manifest":
-                        response.MimeType = "text/cache-manifest";
-                        break;
-                    default:
-                        response.MimeType = "application/octet-stream";
-                        break;
-                }
-                requestCompletedCallback();
-                return true;
-            }
-            return false;
-        }
-    }*/
 }

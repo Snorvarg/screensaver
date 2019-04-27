@@ -1,6 +1,6 @@
 ﻿namespace FSS
 {
-    partial class Form1
+    partial class ScreenSaver
     {
         /// <summary>
         /// Required designer variable.
@@ -29,9 +29,10 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ScreenSaver));
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.daPanel = new System.Windows.Forms.Panel();
+            this.btnSettings = new System.Windows.Forms.Button();
             this.lblMessage = new System.Windows.Forms.Label();
             this.btnMinimize = new System.Windows.Forms.Button();
             this.btnClose = new System.Windows.Forms.Button();
@@ -49,6 +50,7 @@
             // daPanel
             // 
             this.daPanel.BackColor = System.Drawing.SystemColors.Control;
+            this.daPanel.Controls.Add(this.btnSettings);
             this.daPanel.Controls.Add(this.lblMessage);
             this.daPanel.Controls.Add(this.btnMinimize);
             this.daPanel.Controls.Add(this.btnClose);
@@ -58,6 +60,18 @@
             this.daPanel.Name = "daPanel";
             this.daPanel.Size = new System.Drawing.Size(1067, 554);
             this.daPanel.TabIndex = 0;
+            // 
+            // btnSettings
+            // 
+            this.btnSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.btnSettings.Location = new System.Drawing.Point(88, 522);
+            this.btnSettings.Margin = new System.Windows.Forms.Padding(4);
+            this.btnSettings.Name = "btnSettings";
+            this.btnSettings.Size = new System.Drawing.Size(31, 28);
+            this.btnSettings.TabIndex = 3;
+            this.btnSettings.Text = "S";
+            this.btnSettings.UseVisualStyleBackColor = true;
+            this.btnSettings.Click += new System.EventHandler(this.btnSettings_Click);
             // 
             // lblMessage
             // 
@@ -94,7 +108,7 @@
             this.btnClose.UseVisualStyleBackColor = true;
             this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
             // 
-            // Form1
+            // ScreenSaver
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -102,9 +116,10 @@
             this.ClientSize = new System.Drawing.Size(1067, 554);
             this.Controls.Add(this.daPanel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(4);
-            this.Name = "Form1";
-            this.Text = "Form1";
+            this.Name = "ScreenSaver";
+            this.Text = "FSS";
             this.WindowState = System.Windows.Forms.FormWindowState.Minimized;
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Form1_FormClosed);
@@ -121,6 +136,7 @@
         private System.Windows.Forms.Button btnClose;
         private System.Windows.Forms.Button btnMinimize;
         private System.Windows.Forms.Label lblMessage;
+        private System.Windows.Forms.Button btnSettings;
     }
 }
 
