@@ -31,6 +31,35 @@ namespace FSS
     //
     // Start when windows starts:
     //  https://stackoverflow.com/questions/674628/how-do-i-set-a-program-to-launch-at-startup
+    // 
+    // Installer: 
+    // https://marketplace.visualstudio.com/items?itemName=visualstudioclient.MicrosoftVisualStudio2017InstallerProjects
+    // https://docs.microsoft.com/en-us/windows/uwp/porting/desktop-to-uwp-packaging-dot-net
+
+    // TODO: https://docs.microsoft.com/en-us/windows/uwp/porting/desktop-to-uwp-prepare
+    //  <-Specifikt: Läs inte in filer från Current Working Directory, det kanske inte fungerar.. Förstår inte exakt vad de menar.
+
+    // NOTE: Se projektet WappPackagingProject, och guiden https://docs.microsoft.com/en-us/windows/uwp/porting/desktop-to-uwp-packaging-dot-net
+    // 
+    // Right-click your project name in Solution Explorer and choose Store->Associate App with the Store.
+    //  Once that is done, select Store->Create App Packages.
+    //  This will, after some initial fiddling, start the Windows App Certification Kit, which is creating a big heap
+    //  of more work for you. :-) 
+    //
+    // About the Package.appxmanifest and the automatic image creation:
+    //   It's not always working, generating images larger than allowed. The solution is to manually decrease the file size, 
+    //   they are png, so create a "Indexed color" version replacing the file. I guess decreasing the resolution is not an option.
+    // 
+    // Måste fixas: 
+    //      The binary Gma.System.MouseKeyHook.dll is built in debug mode.
+    //      File libcef.dll contains a reference to a "Launch Process" related API kernel32.dll!CreateProcessA
+    //      File Fancy Screen Saver\FSS.exe contains a reference to a "Launch Process" related API System.Diagnostics.Process.Start
+    //      ...mfl! Det är 10 olika sådana här fel. 
+
+    // During development and testing: 
+    //   "Sideload apps" must be enabled in windows 10 settings, 'For developers' section in 'Update & Security'.
+    // Funkade inte, men innehåller mer läsvärt:
+    //  https://stackoverflow.com/questions/23812471/installing-appx-without-trusted-certificate
 
     public enum States
     {
